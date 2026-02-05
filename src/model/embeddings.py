@@ -15,19 +15,23 @@ class Token_Embedding(nn.Module):
     
     def forward(self, x):
         return self.embedding(x)
+    
+    @property
+    def weight(self):
+        return self.embedding.weight
 
 class Positional_Embedding(nn.Module):
 
-    def __init__(self, seq_len: int, d_model:int, dropout: float):
+    def __init__(self, seq_len: int, d_model:int):
         super().__init__()
         self.seq_len = seq_len
         self.d_model = d_model
-        self.dropout = nn.Dropout(dropout)
         self.embedding = nn.Embedding(seq_len, d_model)
 
-    def forward(self, x):
-        x = self.embedding(x)
-        x = self.dropout(x)
+    def forward(self, seq_len: int, device: torch.device, past_len: int):
+        
+        pos = torch.arange(past_len, past_len + seq_len, device=device, dtype=torch.long) # creating vector of 1-dimension
+        pos = pos.unsqueeze(0) # add new dimension in the front (0th idx)
 
-        return x
+        return self.embedding(pos)
         
