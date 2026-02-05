@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 
 
-class Token_Embedding(nn.Module):
+class Token_Embeddings(nn.Module):
 
     def __init__(self, d_model: int, vocab_size: int, padding_idx: int):
         super().__init__()
@@ -20,7 +20,7 @@ class Token_Embedding(nn.Module):
     def weight(self):
         return self.embedding.weight
 
-class Positional_Embedding(nn.Module):
+class Positional_Embeddings(nn.Module):
 
     def __init__(self, seq_len: int, d_model:int):
         super().__init__()
@@ -35,3 +35,31 @@ class Positional_Embedding(nn.Module):
 
         return self.embedding(pos)
         
+class GPTEmbeddings(nn.Module):
+
+    def __init__(self, vocab_size: int, d_model: int, seq_len: int, dropout: float, padding_idx: int):
+        super().__init__()
+        self.token = Token_Embeddings(vocab_size, d_model, padding_idx)
+        self.pos = Positional_Embeddings(seq_len, d_model)
+        self.dropout = nn.Dropout(dropout)
+        self.padding_idx = padding_idx
+    
+    # input_ids --> tokenized labels
+    def forward(self, input_ids, past_len):
+
+        batch, seq_len = input_ids.shape
+        device = input_ids.device
+
+        tok = self.token(input_ids)
+
+        # get the positional embeddings
+        pos = self.pos(seq_len, device=device, past_len=past_len)
+
+        x = tok + pos # adding token + positional embeddings
+        x = self.dropout(x)
+
+        attention_mask = (input_ids != self.padding_idx).to(x.dtype)
+        mask = attention_mask.to(x.dtype).unsqueeze(-1)
+        x = x * mask
+
+        return x
