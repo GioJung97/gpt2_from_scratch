@@ -28,32 +28,34 @@ class Positional_Embeddings(nn.Module):
         self.d_model = d_model
         self.embedding = nn.Embedding(seq_len, d_model)
 
-    def forward(self, seq_len: int, device: torch.device, past_len: int):
+    def forward(self, seq_len: int):
         
-        pos = torch.arange(past_len, past_len + seq_len, device=device, dtype=torch.long) # creating vector of 1-dimension
+        pos = torch.arange(0, seq_len) # creating vector of 1-dimension
         pos = pos.unsqueeze(0) # add new dimension in the front (0th idx)
 
         return self.embedding(pos)
         
+
+# 02/05/2026 Gio's Notes
+# I still don't fully understand this class.        
 class GPTEmbeddings(nn.Module):
 
     def __init__(self, vocab_size: int, d_model: int, seq_len: int, dropout: float, padding_idx: int):
         super().__init__()
-        self.token = Token_Embeddings(vocab_size, d_model, padding_idx)
+        self.token = Token_Embeddings(d_model, vocab_size, padding_idx)
         self.pos = Positional_Embeddings(seq_len, d_model)
         self.dropout = nn.Dropout(dropout)
         self.padding_idx = padding_idx
     
-    # input_ids --> tokenized labels
-    def forward(self, input_ids, past_len):
+    # input_ids --> tokenized labels (from data)
+    def forward(self, input_ids):
 
-        batch, seq_len = input_ids.shape
-        device = input_ids.device
+        _, seq_len = input_ids.shape if len(input_ids.shape) > 1 else input_ids.unsqueeze(0).shape
 
         tok = self.token(input_ids)
 
         # get the positional embeddings
-        pos = self.pos(seq_len, device=device, past_len=past_len)
+        pos = self.pos(seq_len)
 
         x = tok + pos # adding token + positional embeddings
         x = self.dropout(x)
